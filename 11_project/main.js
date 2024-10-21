@@ -4,7 +4,6 @@
 //add post processing rgb shift
 //add resize event listener
 //add mouse hover event
-import './style.css';
 import * as THREE from 'three';
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -27,7 +26,7 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,  
   alpha: true,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // to get better performance on high pixel ratio displays
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1)); // to get better performance on high pixel ratio displays
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1;
@@ -52,6 +51,7 @@ let model; // Declare model variable to store the loaded 3D model
 
 // HDRI Loader
 new RGBELoader()
+  .setDataType(THREE.HalfFloatType)  // Use half float type for better performance
   .load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/pond_bridge_night_1k.hdr', function(texture) {
     texture.mapping = THREE.EquirectangularReflectionMapping;
     // scene.background = texture;
@@ -67,12 +67,10 @@ new RGBELoader()
         
         // Adjust the model's position, scale, and rotation to make it front-facing
         model.position.set(0, 0, 0);
-        model.scale.set(1, 1, 1);
+        updateModelScale(); // Initial scale update
         model.rotation.y = 0; // Set rotation to 0 to make it front-facing
       },
-      function (xhr) {
-        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-      },
+      undefined,
       function (error) {
         console.error('An error happened', error);
       }
@@ -93,8 +91,8 @@ function animate() {
     const targetRotationY = (mouseX - 0.5) * Math.PI * 0.5;
 
     // Smoothly interpolate current rotation to target rotation
-    model.rotation.x += (targetRotationX - model.rotation.x) * 0.03;
-    model.rotation.y += (targetRotationY - model.rotation.y) * 0.03;
+    model.rotation.x += (targetRotationX - model.rotation.x) * 0.004;
+    model.rotation.y += (targetRotationY - model.rotation.y) * 0.004;
   }
   composer.render();
 }
@@ -107,6 +105,7 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight);
+  updateModelScale(); // Update model scale on resize
 }
 
 // Add mouse move event
@@ -116,4 +115,15 @@ window.addEventListener('mousemove', onMouseMove, false);
 function onMouseMove(event) {
   mouseX = event.clientX / window.innerWidth;
   mouseY = event.clientY / window.innerHeight;
+}
+
+// Function to update model scale based on window size
+function updateModelScale() {
+  if (model) {
+    const minDimension = Math.min(window.innerWidth, window.innerHeight);
+    const baseScale = 1; // Base scale for a reference size (e.g., 1000px)
+    const scaleFactor = minDimension / 1000; // Adjust 1000 to your reference size
+    const newScale = baseScale * scaleFactor;
+    model.scale.set(newScale, newScale, newScale);
+  }
 }
